@@ -12,6 +12,7 @@ module HashRedactor
   	  def default_options
   	  	{
   	  	  digest_salt: 		 "",
+		  encryption_key:	 nil,
 		  encode:            true,
 		  encode_iv:         true,
 		  default_encoding:  'm'
