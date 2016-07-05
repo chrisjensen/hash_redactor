@@ -105,7 +105,12 @@ describe HashRedactor do
 	  expect(result[:email_digest]).not_to eq(nil)
 	  expect(result[:email_digest]).not_to eq(result2[:email_digest])
     end
-
+    
+    it "leaves other data unchanged" do
+      data2 = { unspecified: 'leave me alone' }
+	  result = subj.redact(data2, redact: subhash(redact, :email))
+	  expect(result[:unspecified]).to eq('leave me alone')
+    end
   end
   
   describe "#decrypt" do
