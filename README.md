@@ -1,3 +1,6 @@
+[![Gem Version](https://badge.fury.io/rb/hash_redactor.svg)](https://badge.fury.io/rb/hash_redactor)
+[![Build Status](https://travis-ci.org/chrisjensen/hash_redactor.svg?branch=master)](https://travis-ci.org/chrisjensen/hash_redactor)
+
 # HashRedactor
 
 Used to redact a hash by removing, digesting or encrypting keys.
