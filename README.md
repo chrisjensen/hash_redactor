@@ -1,5 +1,8 @@
 [![Gem Version](https://badge.fury.io/rb/hash_redactor.svg)](https://badge.fury.io/rb/hash_redactor)
 [![Build Status](https://travis-ci.org/chrisjensen/hash_redactor.svg?branch=master)](https://travis-ci.org/chrisjensen/hash_redactor)
+[![Test Coverage](https://codeclimate.com/github/chrisjensen/hash_redactor/badges/coverage.svg)](https://codeclimate.com/github/chrisjensen/hash_redactor/coverage)
+[![Code Climate](https://codeclimate.com/github/chrisjensen/hash_redactor/badges/gpa.svg)](https://codeclimate.com/github/chrisjensen/hash_redactor)
+[![security](https://hakiri.io/github/chrisjensen/hash_redactor/master.svg)](https://hakiri.io/github/chrisjensen/hash_redactor/master)
 
 # HashRedactor
 
