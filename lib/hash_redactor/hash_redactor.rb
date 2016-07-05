@@ -4,11 +4,17 @@ module HashRedactor
   class HashRedactor
 	  def initialize(opts = {})
 		@options = default_options.merge opts
+
+		@options[:encode] = @options[:default_encoding] if @options[:encode] == true
+		@options[:encode_iv] = @options[:default_encoding] if @options[:encode_iv] == true
 	  end
   
   	  def default_options
   	  	{
-  	  		digest_salt: ""
+  	  	  digest_salt: 		 "",
+		  encode:            true,
+		  encode_iv:         true,
+		  default_encoding:  'm'
   	  	}
   	  end
   
@@ -46,7 +52,12 @@ module HashRedactor
 				data_key = ('encrypted_' + hash_key.to_s).to_sym
 				iv_key = ('encrypted_' + hash_key.to_s + '_iv').to_sym
 			
-				result[data_key] = EncryptorInterface.encrypt(:data, result[hash_key], iv: iv, key: crypt_key)
+				encrypted_value = EncryptorInterface.encrypt(:data, result[hash_key], iv: iv, key: crypt_key)
+				
+				encrypted_value = [encrypted_value].pack(options[:encode]) if options[:encode]
+				iv = [iv].pack(options[:encode_iv]) if options[:encode_iv]
+			
+				result[data_key] = encrypted_value
 				result[iv_key] = iv
 			  else
 				raise "redact called with unknown operation on #{hash_key.to_s}: #{how.to_s}"
@@ -78,9 +89,17 @@ module HashRedactor
 			if (data.has_key? data_key)
 			  iv = result[iv_key]
 			  crypt_key = options[:encryption_key]
-		
-			  result[hash_key] = EncryptorInterface.decrypt(:data, result[data_key],
+
+			  encrypted_value = result[data_key]
+
+			  # Decode if necessary
+			  iv = iv.unpack(options[:encode_iv]).first if options[:encode_iv]
+			  encrypted_value = encrypted_value.unpack(options[:encode]).first if options[:encode]
+
+			  decrypted_value = EncryptorInterface.decrypt(:data, encrypted_value,
 				   iv: iv, key: crypt_key)
+		
+			  result[hash_key] = decrypted_value
 			end
 		  end
 		end

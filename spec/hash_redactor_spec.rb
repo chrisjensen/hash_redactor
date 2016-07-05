@@ -125,11 +125,22 @@ describe HashRedactor do
 		end
 	end
 
-    it "encrypted data should be decrypted" do
-		crypted = subj.redact(data, redact: subhash(redact, :address))
-    	decrypted = subj.decrypt(crypted, redact: subhash(redact, :address))
-    	
-    	expect(decrypted[:address]).to eq(data[:address])
-    end    
+	encoding_contexts = { "with encoding" => {}, "encode iv only" => { encode: false },
+		 "encode value only" => { encode_iv: false },
+		 "no encoding" => { encode_iv: false, encode: false }}
+
+	encoding_contexts.each do |c,context_opts|
+		context c do
+			it "encrypted data should be decrypted" do
+				r = HashRedactor::HashRedactor.new(options.merge context_opts)
+
+				crypted = r.redact(data, redact: subhash(redact, :address))
+				
+				decrypted = r.decrypt(crypted, redact: subhash(redact, :address))
+		
+				expect(decrypted[:address]).to eq(data[:address])
+			end
+		end
+	end
   end
 end
