@@ -9,8 +9,8 @@ Gem::Specification.new do |spec|
   spec.authors       = ["Chris Jensen"]
   spec.email         = ["chris@broadthought.co"]
 
-  spec.summary       = %q{Redact information in a hash}
-  spec.description   = %q{Removes, digests or encrypts selected keys in a hash}
+  spec.summary       = %q{Redact specified values in a hash}
+  spec.description   = %q{Removes, digests or encrypts selected values in a ruby hash}
   spec.homepage      = "https://github.com/chrisjensen/hash_redactor"
   spec.license       = "MIT"
 
