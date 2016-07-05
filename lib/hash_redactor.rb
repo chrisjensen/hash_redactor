@@ -1,5 +1,2 @@
-require "hash_redactor/version"
+require File.join('hash_redactor', 'hash_redactor')
 
-module HashRedactor
-  # Your code goes here...
-end
