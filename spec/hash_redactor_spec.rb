@@ -111,6 +111,20 @@ describe HashRedactor do
 	  result = subj.redact(data2, redact: subhash(redact, :email))
 	  expect(result[:unspecified]).to eq('leave me alone')
     end
+    
+    it "iv should vary by instance" do
+	  result = subj.redact(data, redact: subhash(redact, :address))
+      data2 = { address: 'Somewhere over the rainbow' }
+	  result2 = subj.redact(data2, redact: subhash(redact, :address))
+	  expect(result[:encrypted_address_iv]).not_to eq(result2[:encrypted_address_iv])
+    end
+
+    it "encrypted text should vary by instance" do
+	  result = subj.redact(data, redact: subhash(redact, :address))
+      data2 = { address: 'Somewhere over the rainbow' }
+	  result2 = subj.redact(data2, redact: subhash(redact, :address))
+	  expect(result[:encrypted_address]).not_to eq(result2[:encrypted_address])
+    end
   end
   
   describe "#decrypt" do
