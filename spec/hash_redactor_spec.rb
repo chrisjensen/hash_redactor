@@ -67,6 +67,20 @@ describe HashRedactor do
 		result = subj.redact(data, redact: subhash(redact, :email))
 		expect(result).not_to have_key(:email)
 	end
+	
+	it "can digest numbers" do
+		data = { email: 25 }
+		result = subj.redact(data)
+		expect(result).to have_key(:email_digest)
+		expect(result[:email_digest]).not_to be_nil
+	end
+
+	it "can encrypt numbers" do
+		data = { address: 25 }
+		result = subj.redact(data)
+		expect(result).to have_key(:encrypted_address)
+		expect(result[:encrypted_address]).not_to be_nil
+	end
     
     it "encrypts data" do
 		result = subj.redact(data, redact: subhash(redact, :address))
@@ -203,6 +217,12 @@ describe HashRedactor do
 		redacted = subj.redact(data, redact: subhash(redact, :address))
 		decrypted = subj.decrypt(redacted)
 		expect(decrypted).not_to have_key(:encrypted_address)
+	end
+	
+	it "decrypts numbers" do
+		data = { address: 5 }
+		redacted = subj.redact(data)
+		expect(subj.decrypt(redacted)).to eq({ address: "5" })
 	end
   end
 end

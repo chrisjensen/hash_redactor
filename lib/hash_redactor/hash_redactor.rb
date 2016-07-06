@@ -44,7 +44,7 @@ module HashRedactor
 				result_key = (hash_key.to_s + '_digest').to_sym
 
 				result[result_key] = Digest::SHA256.base64digest(
-											result[hash_key] + options[:digest_salt])
+											result[hash_key].to_s + options[:digest_salt])
 			  when :encrypt
 				raise "No encryption key specified. Please pass :encryption_key in options to new or redact" unless options[:encryption_key]
 			  
