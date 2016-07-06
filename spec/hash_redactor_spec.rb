@@ -119,12 +119,43 @@ describe HashRedactor do
 	  expect(result[:encrypted_address_iv]).not_to eq(result2[:encrypted_address_iv])
     end
 
+    it "iv should be replaced on every redaction" do
+	  result = subj.redact(data, redact: subhash(redact, :address))
+	  first_iv = result[:encrypted_address_iv]
+	  decrypted = subj.decrypt(result, redact: subhash(redact, :address))
+	  decrypted[:address] = 'A new world'
+	  
+	  result = subj.redact(decrypted, redact: subhash(redact, :address))
+	  expect(result[:encrypted_address_iv]).not_to eq(first_iv)
+    end
+
     it "encrypted text should vary by instance" do
 	  result = subj.redact(data, redact: subhash(redact, :address))
       data2 = { address: 'Somewhere over the rainbow' }
 	  result2 = subj.redact(data2, redact: subhash(redact, :address))
 	  expect(result[:encrypted_address]).not_to eq(result2[:encrypted_address])
     end
+    
+    it "redact + decrypt should be repeatable" do
+	  first_redact = subj.redact(data)
+	  first_decrypt = subj.decrypt(first_redact)
+	  second_redact = subj.redact(first_decrypt)
+	  second_decrypt = subj.decrypt(second_redact)
+
+	  expect(first_decrypt).to eq(second_decrypt)
+    end
+
+    it "redact + decrypt should be repeatable after encrypted value change" do
+	  first_redact = subj.redact(data)
+	  first_decrypt = subj.decrypt(first_redact)
+	  first_decrypt[:address] = 'A new world'
+	  second_redact = subj.redact(first_decrypt)
+	  second_decrypt = subj.decrypt(second_redact)
+	  third_redact = subj.redact(second_decrypt)
+	  third_decrypt = subj.decrypt(third_redact)
+
+	  expect(second_decrypt).to eq(third_decrypt)
+	end
   end
   
   describe "#decrypt" do
