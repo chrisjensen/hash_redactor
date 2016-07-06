@@ -161,5 +161,17 @@ describe HashRedactor do
 			end
 		end
 	end
+	
+	it "deletes iv" do
+		redacted = subj.redact(data, redact: subhash(redact, :address))
+		decrypted = subj.decrypt(redacted)
+		expect(decrypted).not_to have_key(:encrypted_address_iv)
+	end
+	
+	it "deletes encrypted value" do
+		redacted = subj.redact(data, redact: subhash(redact, :address))
+		decrypted = subj.decrypt(redacted)
+		expect(decrypted).not_to have_key(:encrypted_address)
+	end
   end
 end

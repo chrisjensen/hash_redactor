@@ -101,6 +101,8 @@ module HashRedactor
 				   iv: iv, key: crypt_key)
 		
 			  result[hash_key] = decrypted_value
+			  result.delete data_key
+			  result.delete iv_key
 			end
 		  end
 		end
