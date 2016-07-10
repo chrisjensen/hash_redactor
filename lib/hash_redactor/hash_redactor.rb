@@ -41,25 +41,9 @@ module HashRedactor
 			  when :remove
 				nil
 			  when :digest
-				result_key = (hash_key.to_s + '_digest').to_sym
-
-				result[result_key] = Digest::SHA256.base64digest(
-											result[hash_key].to_s + options[:digest_salt])
+			  	digest(result, hash_key, options)
 			  when :encrypt
-				raise "No encryption key specified. Please pass :encryption_key in options to new or redact" unless options[:encryption_key]
-			  
-				crypt_key = options[:encryption_key]
-				iv = SecureRandom.random_bytes(12)
-				data_key = ('encrypted_' + hash_key.to_s).to_sym
-				iv_key = ('encrypted_' + hash_key.to_s + '_iv').to_sym
-			
-				encrypted_value = EncryptorInterface.encrypt(:data, result[hash_key], iv: iv, key: crypt_key)
-				
-				encrypted_value = [encrypted_value].pack(options[:encode]) if options[:encode]
-				iv = [iv].pack(options[:encode_iv]) if options[:encode_iv]
-			
-				result[data_key] = encrypted_value
-				result[iv_key] = iv
+				encrypt(result, hash_key, options)
 			  else
 				raise "redact called with unknown operation on #{hash_key}: #{how}"
 			end
@@ -69,6 +53,38 @@ module HashRedactor
 		end
   
 		result
+	  end
+	  
+	  def digest(hash, hash_key, options)
+	  	digest_key = hash_key.to_s + '_digest'
+	  	digest_key = digest_key.to_sym if hash_key.is_a? Symbol
+	  
+		hash[digest_key] = Digest::SHA256.base64digest(
+									hash[hash_key].to_s + options[:digest_salt])
+	  end
+	  
+	  def encrypt(hash, hash_key, options)
+		raise "No encryption key specified. Please pass :encryption_key in options to new or redact" unless options[:encryption_key]
+	  
+		data_key = 'encrypted_' + hash_key.to_s
+		iv_key = 'encrypted_' + hash_key.to_s + '_iv'
+		
+		if hash_key.is_a? Symbol
+			data_key = data_key.to_sym
+			iv_key = iv_key.to_sym
+		end
+	
+		crypt_key = options[:encryption_key]
+		iv = SecureRandom.random_bytes(12)
+		
+		encrypted_value = EncryptorInterface.encrypt(:data,
+							 hash[hash_key], iv: iv, key: crypt_key)
+		
+		encrypted_value = [encrypted_value].pack(options[:encode]) if options[:encode]
+		iv = [iv].pack(options[:encode_iv]) if options[:encode_iv]
+	
+		hash[data_key] = encrypted_value
+		hash[iv_key] = iv
 	  end
 
 	  def decrypt(data, opts = {})
@@ -84,30 +100,39 @@ module HashRedactor
   
 		redact_hash.each do |hash_key,how|
 		  if (how == :encrypt)
-			data_key = ('encrypted_' + hash_key.to_s).to_sym
-			iv_key = ('encrypted_' + hash_key.to_s + '_iv').to_sym
-
-			if (data.has_key? data_key)
-			  iv = result[iv_key]
-			  crypt_key = options[:encryption_key]
-
-			  encrypted_value = result[data_key]
-
-			  # Decode if necessary
-			  iv = iv.unpack(options[:encode_iv]).first if options[:encode_iv]
-			  encrypted_value = encrypted_value.unpack(options[:encode]).first if options[:encode]
-
-			  decrypted_value = EncryptorInterface.decrypt(:data, encrypted_value,
-				   iv: iv, key: crypt_key)
-		
-			  result[hash_key] = decrypted_value
-			  result.delete data_key
-			  result.delete iv_key
-			end
+		    decrypt_value(result, hash_key, options)
 		  end
 		end
   
 		result
+	  end
+	  
+	  def decrypt_value(result, hash_key, options)
+		data_key = 'encrypted_' + hash_key.to_s
+		iv_key = 'encrypted_' + hash_key.to_s + '_iv'
+		
+		if hash_key.is_a? Symbol
+		  data_key = data_key.to_sym
+		  iv_key = iv_key.to_sym
+		end
+
+		if (result.has_key? data_key)
+		  iv = result[iv_key]
+		  crypt_key = options[:encryption_key]
+
+		  encrypted_value = result[data_key]
+
+		  # Decode if necessary
+		  iv = iv.unpack(options[:encode_iv]).first if options[:encode_iv]
+		  encrypted_value = encrypted_value.unpack(options[:encode]).first if options[:encode]
+
+		  decrypted_value = EncryptorInterface.decrypt(:data, encrypted_value,
+			   iv: iv, key: crypt_key)
+	
+		  result[hash_key] = decrypted_value
+		  result.delete data_key
+		  result.delete iv_key
+		end
 	  end
   end
 
