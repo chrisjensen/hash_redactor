@@ -61,7 +61,7 @@ module HashRedactor
 				result[data_key] = encrypted_value
 				result[iv_key] = iv
 			  else
-				raise "redact called with unknown operation on #{hash_key.to_s}: #{how.to_s}"
+				raise "redact called with unknown operation on #{hash_key}: #{how}"
 			end
 
 			result.delete hash_key
