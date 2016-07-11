@@ -34,6 +34,7 @@ Initialize the HashRedactor with a set of fields that you want to redact in hash
 
 You can choose 3 ways to redact each field:
 
++ `:keep` - The field is untouched (for use in `:whitelist` mode)
 + `:remove` - The field is simply deleted
 + `:digest` - The field is passed through a one way hash function (SHA256)
 + `:encrypt` - The field is encrypted
@@ -121,7 +122,8 @@ Default options are:
 		  encryption_key:	 nil,
 		  encode:            true,
 		  encode_iv:         true,
-		  default_encoding:  'm'
+		  default_encoding:  'm',
+		  filter_mode:		 :blacklist
 ```
 
 ### :digest_salt
@@ -137,6 +139,51 @@ Key to use for encryption and decryption of values
 Determines how (if at all) to encode the encrypted data and it's iv
 
 The default encoding is m (base64). You can change this by setting encode: `'some encoding'`. See [Arrary#pack](http://ruby-doc.org/core-2.3.0/Array.html#method-i-pack) for more encoding options.
+
+### filter_mode
+
+Filter mode determines how keys that are not included in the redact option are handled.
+It can be either `:whitelist` or `:blacklist`
+
+In `:blacklist` mode the default, it will leave unspecified keys untouched.
+In `:whitelist` mode any keys not specified will be removes.
+
+```ruby
+redactor = HashRedactor::HashRedactor.new({
+	redact: { :id => :keep, :ssn => :remove, :history => :encrypt, :email => :digest" },
+	encryption_key: 'a really secure key no one will ever guess it',
+	digest_salt: 'a secret salt'
+})
+
+data = {
+  id: 42,
+  ssn: 'my ssn number',
+  history: 'Intriguing"
+  email: 'personal@email.com',
+  age: "that's personal"
+}
+
+result = reactor.redact data
+result[:id]					# 42
+result[:ssn]				# nil
+result[:encrypted_history]  # encrypted value
+result[:email_digest]		# digest of email
+
+result[:age]				# "that's personal"
+
+result = reactor.redact data, :filter_mode => :whitelist
+
+result[:id]					# 42 (because of :id => :keep)
+result[:ssn]				# nil
+result[:encrypted_history]  # encrypted value
+result[:email_digest]		# digest of email
+
+result[:age]				# nil (because it wasn't explicitly whitelisted)
+
+```
+
+*Note:* To prevent accidental deletion of digest information during repeated loading and unloading data, the digest of all values is implicitly assumed to be :keep.
+eg If your redact hash includes `:email => :digest`, it is assumed to also contain `:email_digest => :keep`
 
 ## Development
 
