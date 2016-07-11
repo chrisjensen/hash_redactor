@@ -7,6 +7,8 @@ module HashRedactor
 
 		@options[:encode] = @options[:default_encoding] if @options[:encode] == true
 		@options[:encode_iv] = @options[:default_encoding] if @options[:encode_iv] == true
+		
+		raise "unknown filter mode #{@options[:filter_mode]}" unless [:blacklist,:whitelist].include? @options[:filter_mode]
 	  end
   
   	  def default_options
@@ -15,8 +17,13 @@ module HashRedactor
 		  encryption_key:	 nil,
 		  encode:            true,
 		  encode_iv:         true,
-		  default_encoding:  'm'
+		  default_encoding:  'm',
+		  filter_mode:		 :blacklist
   	  	}
+  	  end
+  	  
+  	  def options
+  	  	@options
   	  end
   
 	  # Removes, digests or encrypts fields in a hash
@@ -35,9 +42,22 @@ module HashRedactor
   
 		result = data.clone
   
-		redact_hash.each do |hash_key,how|
+  		# If it's blacklist mode, just go over our redact keys
+  		# Otherwise, we have to go through and remove all keys that aren't :keep
+  		if (options[:filter_mode] == :whitelist)
+  		  keys = data.keys
+		  redact_hash = whitelist_redact_hash redact_hash
+  		else
+  		  keys = redact_hash.keys
+  		end
+
+		keys.each do |hash_key,how|
+		  how = redact_hash[hash_key] || :remove
+		  
 		  if data.has_key? hash_key
 			case how
+			  when :keep
+			    nil
 			  when :remove
 				nil
 			  when :digest
@@ -48,7 +68,7 @@ module HashRedactor
 				raise "redact called with unknown operation on #{hash_key}: #{how}"
 			end
 
-			result.delete hash_key
+			result.delete hash_key unless how == :keep
 		  end
 		end
   
@@ -56,10 +76,9 @@ module HashRedactor
 	  end
 	  
 	  def digest(hash, hash_key, options)
-	  	digest_key = hash_key.to_s + '_digest'
-	  	digest_key = digest_key.to_sym if hash_key.is_a? Symbol
+	    dig_key = digest_key hash_key
 	  
-		hash[digest_key] = Digest::SHA256.base64digest(
+		hash[dig_key] = Digest::SHA256.base64digest(
 									hash[hash_key].to_s + options[:digest_salt])
 	  end
 	  
@@ -133,6 +152,28 @@ module HashRedactor
 		  result.delete data_key
 		  result.delete iv_key
 		end
+	  end
+	  
+	  def digest_key hash_key
+	  	dig_key = hash_key.to_s + '_digest'
+	  	dig_key = dig_key.to_sym if hash_key.is_a? Symbol
+	  	dig_key
+	  end
+
+	  # Calculate all keys that should be kept in whitelist mode
+	  # In multiple iterations of redact -> decrypt - digest keys will remain
+	  # and then get deleted in the second iteration, so we have to
+	  # add the digest keys so they're not wiped out on later iteration
+  	  def whitelist_redact_hash redact_hash
+  	    digest_hash = {}
+  	    
+  	  	redact_hash.each do |key,how|
+  	  	  if (how == :digest)
+  	  	    digest_hash[digest_key(key)] = :keep
+  	  	  end
+  	  	end
+  	  	
+  	  	digest_hash.merge redact_hash
 	  end
   end
 

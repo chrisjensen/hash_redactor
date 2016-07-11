@@ -82,91 +82,132 @@ describe HashRedactor do
 
 	  { "string" => :to_s, "symbol" => :to_sym }.each do |key_type,convert|
 		context "#{key_type} keys" do
-			it "removes data" do
-				key = "ssn".send(convert)
+		  [ :blacklist, :whitelist ].each do |mode|
+			context "mode: #{mode}" do
+			    let (:options) do
+				  {
+					redact: redact,
+					filter_mode: mode,
+					encryption_key: 'my really, really, really, secret key'
+				  }
+			    end
 			
-				result = subj.redact(datas[key_type],
+				it "removes data" do
+					key = "ssn".send(convert)
+			
+					result = subj.redact(datas[key_type],
+								 redact: subhash(redacts[key_type], key))
+					expect(result).not_to have_key(key)
+				end
+	
+				it "digests data" do
+					key = "email".send(convert)
+					digest_key = "email_digest".send(convert)
+			
+					result = subj.redact(datas[key_type],
+										 redact: subhash(redacts[key_type], key))
+					expect(result[digest_key]).not_to eq(nil)
+					expect(result[digest_key]).not_to eq(data[key])
+				end
+
+				it "removes plaintext of digested data" do
+					key = "email".send(convert)
+
+					result = subj.redact(datas[key_type],
+								 redact: subhash(redacts[key_type], key))
+					expect(result).not_to have_key(key)
+				end
+	
+				it "can digest numbers" do
+					key = "email".send(convert)
+					digest_key = "email_digest".send(convert)
+			
+					data = { key => 25 }
+				
+					result = subj.redact(data, redact: redacts[key_type])
+				
+					expect(result).to have_key(digest_key)
+					expect(result[digest_key]).not_to be_nil
+				end
+
+				it "can encrypt numbers" do
+					key = "address".send(convert)
+					crypted_key = "encrypted_address".send(convert)
+
+					data = { key => 25 }
+				
+					result = subj.redact(data, redact: redacts[key_type])
+					expect(result).to have_key(crypted_key)
+					expect(result[crypted_key]).not_to be_nil
+				end
+	
+				it "encrypts data" do
+					key = "address".send(convert)
+					crypted_key = "encrypted_address".send(convert)
+
+					result = subj.redact(datas[key_type],
 							 redact: subhash(redacts[key_type], key))
-				expect(result).not_to have_key(key)
-			end
+					expect(result).to have_key(crypted_key)
+
+					expect(result[crypted_key]).not_to eq(nil)
+					expect(result[crypted_key]).not_to eq(data[key])
+				end
 	
-			it "digests data" do
-				key = "email".send(convert)
-				digest_key = "email_digest".send(convert)
-			
-				result = subj.redact(datas[key_type],
-									 redact: subhash(redacts[key_type], key))
-				expect(result[digest_key]).not_to eq(nil)
-				expect(result[digest_key]).not_to eq(data[key])
-			end
+				it "removes plaintext of encrypted data" do
+					key = "address".send(convert)
 
-			it "removes plaintext of digested data" do
-				key = "email".send(convert)
-
-				result = subj.redact(datas[key_type],
+					result = subj.redact(datas[key_type],
 							 redact: subhash(redacts[key_type], key))
-				expect(result).not_to have_key(key)
-			end
+					expect(result).not_to have_key(key)
+				end
 	
-			it "can digest numbers" do
-				key = "email".send(convert)
-				digest_key = "email_digest".send(convert)
-			
-				data = { key => 25 }
-				
-				result = subj.redact(data, redact: redacts[key_type])
-				
-				expect(result).to have_key(digest_key)
-				expect(result[digest_key]).not_to be_nil
-			end
+				it "digested data should be comparable" do
+				  key = "email".send(convert)
+				  digest_key = "email_digest".send(convert)
 
-			it "can encrypt numbers" do
-				key = "address".send(convert)
-				crypted_key = "encrypted_address".send(convert)
-
-				data = { key => 25 }
-				
-				result = subj.redact(data, redact: redacts[key_type])
-				expect(result).to have_key(crypted_key)
-				expect(result[crypted_key]).not_to be_nil
-			end
-	
-			it "encrypts data" do
-				key = "address".send(convert)
-				crypted_key = "encrypted_address".send(convert)
-
-				result = subj.redact(datas[key_type],
-						 redact: subhash(redacts[key_type], key))
-				expect(result).to have_key(crypted_key)
-
-				expect(result[crypted_key]).not_to eq(nil)
-				expect(result[crypted_key]).not_to eq(data[key])
-			end
-	
-			it "removes plaintext of encrypted data" do
-				key = "address".send(convert)
-
-				result = subj.redact(datas[key_type],
-						 redact: subhash(redacts[key_type], key))
-				expect(result).not_to have_key(key)
-			end
-	
-			it "digested data should be comparable" do
-			  key = "email".send(convert)
-			  digest_key = "email_digest".send(convert)
-
-			  data2 = { key => 'george@example.com' }
+				  data2 = { key => 'george@example.com' }
 			  
-			  result = subj.redact(datas[key_type],
-			  	 redact: subhash(redacts[key_type], key))
-			  result2 = subj.redact(data2,
-			  	 redact: subhash(redacts[key_type], key))
+				  result = subj.redact(datas[key_type],
+					 redact: subhash(redacts[key_type], key))
+				  result2 = subj.redact(data2,
+					 redact: subhash(redacts[key_type], key))
 	  
-			  expect(result[digest_key]).not_to eq(nil)
-			  expect(result[digest_key]).to eq(result2[digest_key])
+				  expect(result[digest_key]).not_to eq(nil)
+				  expect(result[digest_key]).to eq(result2[digest_key])
+				end
+
+				it "redact + decrypt should be repeatable" do
+				  subj.options[:redact] = redacts[key_type]
+				
+				  first_redact = subj.redact(datas[key_type])
+				  first_decrypt = subj.decrypt(first_redact)
+				  second_redact = subj.redact(first_decrypt)
+				  second_decrypt = subj.decrypt(second_redact)
+
+				  expect(second_decrypt).not_to be_empty
+				  expect(second_decrypt).to eq(first_decrypt)
+				end
+
+				it "redact + decrypt should be repeatable after encrypted value change" do
+				  subj.options[:redact] = redacts[key_type]
+
+				  key = "address".send(convert)
+
+				  first_redact = subj.redact(datas[key_type])
+				  first_decrypt = subj.decrypt(first_redact)
+				  first_decrypt[key] = 'A new world'
+				  second_redact = subj.redact(first_decrypt)
+				  second_decrypt = subj.decrypt(second_redact)
+				  third_redact = subj.redact(second_decrypt)
+				  third_decrypt = subj.decrypt(third_redact)
+
+				  expect(third_decrypt).not_to be_empty
+				  expect(second_decrypt).to eq(third_decrypt)
+				end
+			  end
 			end
 
-			it "leaves other data unchanged" do
+			it "leaves other data unchanged by default" do
 			  key = "unspecified".send(convert)
 
 			  data2 = { key => 'leave me alone' }
@@ -174,31 +215,31 @@ describe HashRedactor do
 			  result = subj.redact(data2, redacts[key_type])
 			  expect(result[key]).to eq('leave me alone')
 			end
-	
-			it "redact + decrypt should be repeatable" do
-			  first_redact = subj.redact(datas[key_type])
-			  first_decrypt = subj.decrypt(first_redact)
-			  second_redact = subj.redact(first_decrypt)
-			  second_decrypt = subj.decrypt(second_redact)
-
-			  expect(first_decrypt).to eq(second_decrypt)
-			end
-
-			it "redact + decrypt should be repeatable after encrypted value change" do
-			  key = "address".send(convert)
-
-			  first_redact = subj.redact(datas[key_type])
-			  first_decrypt = subj.decrypt(first_redact)
-			  first_decrypt[key] = 'A new world'
-			  second_redact = subj.redact(first_decrypt)
-			  second_decrypt = subj.decrypt(second_redact)
-			  third_redact = subj.redact(second_decrypt)
-			  third_decrypt = subj.decrypt(third_redact)
-
-			  expect(second_decrypt).to eq(third_decrypt)
-			end
 		end
 	end
+
+    context "whitelist mode" do
+      let(:data_white) do
+        data.merge(unspecified: "this should go", whitelisted: "this should stay")
+      end
+      
+      let(:redact_white) do
+        redact.merge(:whitelisted => :keep)
+      end
+    
+      it "removes unspecified keys" do
+		result = subj.redact(data_white, redact: redact_white, filter_mode: :whitelist)
+		
+		expect(result).not_to have_key(:unspecified)
+      end
+      
+      it "keeps keys explicitly marked keep" do
+		result = subj.redact(data_white, redact: redact_white, filter_mode: :whitelist)
+		
+		expect(result[:whitelisted]).not_to eq(nil)
+		expect(result[:whitelisted]).not_to eq(data_white[:whitelist])
+      end
+    end
 
 	context "indifferent to key type" do
 		it "salt should change digest" do

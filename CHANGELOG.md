@@ -1,5 +1,9 @@
 # hash_redactor #
 
+##0.3.0 ##
+* Added: Whitelist mode (@chrisjensen)
+* Fixed: redact + decrypt loop specs should check result is not empty (@chrisjensen)
+
 ##0.2.1 ##
 * Fixed: Add support for string keys (@chrisjensen)
 
