@@ -18,7 +18,8 @@ module HashRedactor
 		  encode:            true,
 		  encode_iv:         true,
 		  default_encoding:  'm',
-		  filter_mode:		 :blacklist
+		  filter_mode:		 :blacklist,
+		  digest_empty:		 true
   	  	}
   	  end
   	  
@@ -78,8 +79,13 @@ module HashRedactor
 	  def digest(hash, hash_key, options)
 	    dig_key = digest_key hash_key
 	  
-		hash[dig_key] = Digest::SHA256.base64digest(
-									hash[hash_key].to_s + options[:digest_salt])
+	  	# Don't digest the value if the user wants empty values to be untouched
+	  	if ((hash[hash_key].to_s != '') || options[:digest_empty]) 
+			hash[dig_key] = Digest::SHA256.base64digest(
+										hash[hash_key].to_s + options[:digest_salt])
+		else
+			hash[dig_key] = hash[hash_key]
+		end
 	  end
 	  
 	  def encrypt(hash, hash_key, options)
@@ -92,15 +98,21 @@ module HashRedactor
 			data_key = data_key.to_sym
 			iv_key = iv_key.to_sym
 		end
-	
-		crypt_key = options[:encryption_key]
-		iv = SecureRandom.random_bytes(12)
+
+		# Don't try to encrypt nil
+		if hash[hash_key].nil?
+		    encrypted_value = nil
+		    iv = nil
+		else
+			crypt_key = options[:encryption_key]
+			iv = SecureRandom.random_bytes(12)
 		
-		encrypted_value = EncryptorInterface.encrypt(:data,
-							 hash[hash_key], iv: iv, key: crypt_key)
+			encrypted_value = EncryptorInterface.encrypt(:data,
+								 hash[hash_key], iv: iv, key: crypt_key)
 		
-		encrypted_value = [encrypted_value].pack(options[:encode]) if options[:encode]
-		iv = [iv].pack(options[:encode_iv]) if options[:encode_iv]
+			encrypted_value = [encrypted_value].pack(options[:encode]) if options[:encode]
+			iv = [iv].pack(options[:encode_iv]) if options[:encode_iv]
+		end
 	
 		hash[data_key] = encrypted_value
 		hash[iv_key] = iv
@@ -136,21 +148,26 @@ module HashRedactor
 		end
 
 		if (result.has_key? data_key)
-		  iv = result[iv_key]
-		  crypt_key = options[:encryption_key]
+		  if result[data_key].nil?
+		  	decrypted_value = nil
+		  else
+			  iv = result[iv_key]
+			  crypt_key = options[:encryption_key]
 
-		  encrypted_value = result[data_key]
+			  encrypted_value = result[data_key]
 
-		  # Decode if necessary
-		  iv = iv.unpack(options[:encode_iv]).first if options[:encode_iv]
-		  encrypted_value = encrypted_value.unpack(options[:encode]).first if options[:encode]
+			  # Decode if necessary
+			  iv = iv.unpack(options[:encode_iv]).first if options[:encode_iv]
+			  encrypted_value = encrypted_value.unpack(options[:encode]).first if options[:encode]
 
-		  decrypted_value = EncryptorInterface.decrypt(:data, encrypted_value,
-			   iv: iv, key: crypt_key)
+			  decrypted_value = EncryptorInterface.decrypt(:data, encrypted_value,
+				   iv: iv, key: crypt_key)
+				   
+			  result.delete data_key
+			  result.delete iv_key
+		  end
 	
 		  result[hash_key] = decrypted_value
-		  result.delete data_key
-		  result.delete iv_key
 		end
 	  end
 	  

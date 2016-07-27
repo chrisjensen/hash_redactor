@@ -1,5 +1,10 @@
 # hash_redactor #
 
+## 0.3.1 ##
+* Fixed: nil values caused encryption to fail
+* Added: digest_empty to improve performance on empty strings
+* Changed: Improved performance when encrypt is passed an empty string
+
 ##0.3.0 ##
 * Added: Whitelist mode (@chrisjensen)
 * Fixed: redact + decrypt loop specs should check result is not empty (@chrisjensen)

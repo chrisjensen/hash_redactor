@@ -80,18 +80,53 @@ describe HashRedactor do
 			end.to raise_error("redact called with unknown operation on email: weird_new_operation")
 		end
 
+	  { "empty string" => '', 'nil' => nil }.each do |description, value|
+		context "with #{description} values" do
+			it "can encrypt" do
+				result = subj.redact({ address: value },
+							 redact: subhash(redact, :address))
+							 
+				expect(result[:encrypted_address]).to eq(value)
+			end
+			
+			it "can digest" do
+				result = subj.redact({ email: value },
+							 redact: subhash(redact, :email))
+
+				expect(result[:email_digest]).to be_truthy
+			end
+
+			context "with options[:digest_empty] = false" do
+				let (:options) do
+				  {
+					redact: subhash(redact, :email),
+					digest_empty: false,
+					encryption_key: 'my really, really, really, secret key'
+				  }
+				end
+
+				it "digest remains empty" do
+					result = subj.redact({ email: value },
+								 options)
+
+					expect(result[:email_digest]).to eq(value)
+				end
+			end
+		end
+	  end
+
 	  { "string" => :to_s, "symbol" => :to_sym }.each do |key_type,convert|
 		context "#{key_type} keys" do
 		  [ :blacklist, :whitelist ].each do |mode|
-			context "mode: #{mode}" do
-			    let (:options) do
+			context "mode: #{mode}" do			
+				let (:options) do
 				  {
 					redact: redact,
 					filter_mode: mode,
 					encryption_key: 'my really, really, really, secret key'
 				  }
-			    end
-			
+				end
+				
 				it "removes data" do
 					key = "ssn".send(convert)
 			
@@ -295,10 +330,21 @@ describe HashRedactor do
 			end
 		end
 
+	  { "empty string" => '', 'nil' => nil }.each do |description, value|
+		context "with #{description} values" do
+			it "can decrypt" do
+				result = subj.redact({ address: value },
+							 redact: subhash(redact, :address))
+				decrypted = subj.decrypt(result, redact: subhash(redact, :address))
+				
+				expect(decrypted[:address]).to eq(value)
+			end
+		end
+	  end
+
 		encoding_contexts = { "with encoding" => {}, "encode iv only" => { encode: false },
 			 "encode value only" => { encode_iv: false },
 			 "no encoding" => { encode_iv: false, encode: false }}
-
 
 	  { "string" => :to_s, "symbol" => :to_sym }.each do |key_type, convert|
 	    context key_type do

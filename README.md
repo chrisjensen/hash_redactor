@@ -123,7 +123,8 @@ Default options are:
 		  encode:            true,
 		  encode_iv:         true,
 		  default_encoding:  'm',
-		  filter_mode:		 :blacklist
+		  filter_mode:		 :blacklist,
+		  digest_empty:		 true
 ```
 
 ### :digest_salt
@@ -184,6 +185,25 @@ result[:age]				# nil (because it wasn't explicitly whitelisted)
 
 *Note:* To prevent accidental deletion of digest information during repeated loading and unloading data, the digest of all values is implicitly assumed to be :keep.
 eg If your redact hash includes `:email => :digest`, it is assumed to also contain `:email_digest => :keep`
+
+### digest_empty
+Determines if the empty string or nil should be digested, defaults to true for backwards compatibility.
+
+```
+data = { empty: '', not_a_thing: nil }
+
+redactor = HashRedactor::HashRedactor.new({
+	:empty => :digest, :not_a_thing => :digest
+})
+
+result = redactor.redact(data)
+result[:empty_digest] 			# some digest
+result[:not_a_thing_digest] 	# some digest
+
+redactor.redact(data, digest_empty: false)
+result[:empty_digest] 			# ''
+result[:not_a_thing_digest] 	# nil
+```
 
 ## Development
 
