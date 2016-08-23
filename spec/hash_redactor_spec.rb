@@ -41,15 +41,17 @@ describe HashRedactor do
   
   let (:redacts) do
   	{
-  		"string" => string_redact,
-  		"symbol" => redact
+  		"string keys" => string_redact,
+  		"symbol keys" => redact,
+  		"string mode" => redact.clone.tap { |r| r.each { |k,v| r[k] = v.to_s } }
   	}
   end
 
   let (:datas) do
   	{
-  		"string" => string_data,
-  		"symbol" => data
+  		"string keys" => string_data,
+  		"symbol keys" => data,
+  		"string mode" => data
   	}
   end
 
@@ -115,8 +117,10 @@ describe HashRedactor do
 		end
 	  end
 
-	  { "string" => :to_s, "symbol" => :to_sym }.each do |key_type,convert|
-		context "#{key_type} keys" do
+	  { "string keys" => :to_s, 
+	    "symbol keys" => :to_sym,
+	    "string mode" => :to_sym }.each do |key_type,convert|
+		context "#{key_type}" do
 		  [ :blacklist, :whitelist ].each do |mode|
 			context "mode: #{mode}" do			
 				let (:options) do
@@ -138,7 +142,7 @@ describe HashRedactor do
 				it "digests data" do
 					key = "email".send(convert)
 					digest_key = "email_digest".send(convert)
-			
+
 					result = subj.redact(datas[key_type],
 										 redact: subhash(redacts[key_type], key))
 					expect(result[digest_key]).not_to eq(nil)
@@ -201,7 +205,7 @@ describe HashRedactor do
 				  digest_key = "email_digest".send(convert)
 
 				  data2 = { key => 'george@example.com' }
-			  
+
 				  result = subj.redact(datas[key_type],
 					 redact: subhash(redacts[key_type], key))
 				  result2 = subj.redact(data2,
@@ -346,7 +350,7 @@ describe HashRedactor do
 			 "encode value only" => { encode_iv: false },
 			 "no encoding" => { encode_iv: false, encode: false }}
 
-	  { "string" => :to_s, "symbol" => :to_sym }.each do |key_type, convert|
+	  { "string keys" => :to_s, "symbol keys" => :to_sym }.each do |key_type, convert|
 	    context key_type do
 			encoding_contexts.each do |c,context_opts|
 				context c do
@@ -385,6 +389,13 @@ describe HashRedactor do
 				expect(decrypted).not_to have_key(crypted_key)
 			end
 		  end
+	  end
+	  
+	  it "decrypts with string modes" do
+		data = { address: 5 }
+		redact.each { |k,v| redact[k] = v.to_s }
+		redacted = subj.redact(data, redact)
+		expect(subj.decrypt(redacted)).to eq({ address: "5" })
 	  end
 	  
 	  it "decrypts numbers" do

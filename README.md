@@ -39,6 +39,8 @@ You can choose 3 ways to redact each field:
 + `:digest` - The field is passed through a one way hash function (SHA256)
 + `:encrypt` - The field is encrypted
 
+The modes can be specified as strings also (to facilitate easy loading from a JSONB field)
+
 If you plan on using digest or encrypt, then you will need to specify `:digest_salt` or `:encryption_key` respectively in the options.
 
 ```ruby

@@ -1,9 +1,12 @@
 # hash_redactor #
 
+## 0.4.0 ##
+* Added: Allow mode to be strings instead of symbols (@chrisjensen)
+
 ## 0.3.1 ##
-* Fixed: nil values caused encryption to fail
-* Added: digest_empty to improve performance on empty strings
-* Changed: Improved performance when encrypt is passed an empty string
+* Fixed: nil values caused encryption to fail (@chrisjensen)
+* Added: digest_empty to improve performance on empty strings (@chrisjensen)
+* Changed: Improved performance when encrypt is passed an empty string (@chrisjensen)
 
 ##0.3.0 ##
 * Added: Whitelist mode (@chrisjensen)

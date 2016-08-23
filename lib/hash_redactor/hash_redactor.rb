@@ -56,7 +56,7 @@ module HashRedactor
 		  how = redact_hash[hash_key] || :remove
 		  
 		  if data.has_key? hash_key
-			case how
+			case how.to_sym
 			  when :keep
 			    nil
 			  when :remove
@@ -69,7 +69,7 @@ module HashRedactor
 				raise "redact called with unknown operation on #{hash_key}: #{how}"
 			end
 
-			result.delete hash_key unless how == :keep
+			result.delete hash_key unless how.to_sym == :keep
 		  end
 		end
   
@@ -130,7 +130,7 @@ module HashRedactor
 		result = data.clone
   
 		redact_hash.each do |hash_key,how|
-		  if (how == :encrypt)
+		  if (how.to_sym == :encrypt)
 		    decrypt_value(result, hash_key, options)
 		  end
 		end
@@ -185,7 +185,7 @@ module HashRedactor
   	    digest_hash = {}
   	    
   	  	redact_hash.each do |key,how|
-  	  	  if (how == :digest)
+  	  	  if (how.to_sym == :digest)
   	  	    digest_hash[digest_key(key)] = :keep
   	  	  end
   	  	end
